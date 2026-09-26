@@ -110,7 +110,7 @@ int main() {
     // Game Logic Stuff
     bool bGameover = false;
 
-    int nCurrentPiece = 1;
+    int nCurrentPiece = rand() % 7;
     int nCurrentRotation = 0;
     int nCurrentX = nFieldWidth / 2;
     int nCurrentY = 0;
@@ -121,8 +121,13 @@ int main() {
     keypad(stdscr, TRUE);
     nodelay(stdscr, TRUE);
 
-    bool bKey[4];
+    //bool bKey[4];
     bool bRotateHold = false;
+
+    int nSpeed = 20;
+    int nSpeedCounter = 0;
+    bool bForceDown = false;
+
 
 
 
@@ -130,32 +135,31 @@ int main() {
     {
         // GAME TIMING ========================================================
         this_thread::sleep_for(50ms);
+        nSpeedCounter++;
+        bForceDown = (nSpeedCounter == nSpeed);
 
         // INPUT ==============================================================
         int key = getch();
-        bKey[0] = key == KEY_RIGHT;
-        bKey[1] = key == KEY_LEFT;
-        bKey[2] = key == KEY_DOWN;
-        bKey[3] = key == 'z' || key == 'Z';
-
 
         // GAME LOGIC =========================================================
-        if (bKey[0] && DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX + 1, nCurrentY))
+
+        // movement handler
+        if (key == KEY_RIGHT && DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX + 1, nCurrentY))
         {
             nCurrentX = nCurrentX + 1;
         }
 
-        if (bKey[1] && DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX - 1, nCurrentY))
+        if (key == KEY_LEFT && DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX - 1, nCurrentY))
         {
             nCurrentX = nCurrentX - 1;
         }
 
-        if (bKey[2] && DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1))
+        if (key == KEY_DOWN && DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1))
         {
             nCurrentY = nCurrentY + 1;
         }
 
-        if (bKey[3])
+        if (key == 'z' || key == 'Z')
         {
             if (!bRotateHold && DoesPieceFit(nCurrentPiece, nCurrentRotation + 1, nCurrentX, nCurrentY))
             {
@@ -166,6 +170,57 @@ int main() {
         else
         {
             bRotateHold = false;
+        }
+
+        // game handler
+        if (bForceDown)
+        {
+            if (DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1))
+            {
+                nCurrentY = nCurrentY + 1;
+            }
+            else
+            {
+                // Lock the current piece in the field
+                for (int px = 0; px < 4; px++)
+                    for (int py = 0; py < 4; py++)
+                        if (tetromino[nCurrentPiece][Rotate(px, py, nCurrentRotation)] == L'X')
+                            pField[(nCurrentY + py)*nFieldWidth + (nCurrentX + px)] = nCurrentPiece + 1;
+
+
+                // Check have we got any lines
+                for (int py = 0; py < 4; py++)
+                {
+                    if (nCurrentY + py < nFieldHeight -1)
+                    {
+                        bool bLine = true;
+                        for (int px = 1; px < nFieldWidth - 1; px++)
+                        {
+                            bLine &= (pField[(nCurrentY + py) * nFieldWidth + px]) != 0;
+                        }
+
+                        if (bLine)
+                        {
+                            // Remove Line, set to
+                            for (int px = 1; px < nFieldWidth - 1; px++)
+                            {
+                                pField[(nCurrentY + py) * nFieldWidth + px] = 8;
+                            }
+                        }
+                    }
+                }
+
+                // Choose next piece
+                nCurrentPiece = rand() % 7;
+                nCurrentRotation = 0;
+                nCurrentX = nFieldWidth / 2;
+                nCurrentY = 0;
+
+                // if piece does not fit -> GameOver
+                bGameover = !DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY);
+            }
+
+            nSpeedCounter = 0;
         }
 
         // RENDER OUTPUT ======================================================

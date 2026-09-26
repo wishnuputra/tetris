@@ -12,6 +12,7 @@ int nFieldWidth = 12;
 int nFieldHeight = 18;
 unsigned char* pField = nullptr;
 
+// “For the cell (px, py) in the rotated 4×4 shape, which index should I read from the original 16-character Tetromino?”
 int Rotate(int px, int py, int r)
 {
     switch (r % 4)
@@ -109,8 +110,10 @@ int main() {
     bool bGameover = false;
     bool bFirstFrame = true;
 
-    int nCurrentPiece = 0;
+    int nCurrentPiece = 1;
     int nCurrentRotation = 0;
+    int nCurrentX = nFieldWidth / 2;
+    int nCurrentY = 0;
 
 
 
@@ -118,7 +121,7 @@ int main() {
     while (!bGameover)
     {
         // GAME TIMING ========================================================
-
+        this_thread::sleep_for(50ms);
 
         // INPUT ==============================================================
 
@@ -136,6 +139,14 @@ int main() {
                 // A field coordinate maps to y * field width + x in the 1D array.
                 screen[(y + offset) * nScreenWidth + (x + offset)] = assets[pField[y * nFieldWidth + x]];
 
+        // Draw Current Piece
+        for (int px = 0; px < 4; px++)
+            for (int py = 0; py < 4; py++)
+                if (tetromino[nCurrentPiece][Rotate(px, py, nCurrentRotation)] == L'X')
+                    screen[(nCurrentY + py + 2)*nScreenWidth + (nCurrentX + px + 2)] = nCurrentPiece + 65;
+
+
+        // Display Frame
 
         // \x1b[2J is an ANSI escape sequence used by programmers to clear the terminal screen
         // \x1b: This represents the Escape character (ESC, ASCII value 27 in decimal or 1B in hexadecimal).

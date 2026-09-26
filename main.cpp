@@ -1,6 +1,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <ncurses.h>
 
 using namespace std;
 
@@ -108,13 +109,20 @@ int main() {
 
     // Game Logic Stuff
     bool bGameover = false;
-    bool bFirstFrame = true;
 
     int nCurrentPiece = 1;
     int nCurrentRotation = 0;
     int nCurrentX = nFieldWidth / 2;
     int nCurrentY = 0;
 
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    nodelay(stdscr, TRUE);
+
+    bool bKey[4];
+    bool bRotateHold = false;
 
 
 
@@ -124,12 +132,49 @@ int main() {
         this_thread::sleep_for(50ms);
 
         // INPUT ==============================================================
+        int key = getch();
+        bKey[0] = key == KEY_RIGHT;
+        bKey[1] = key == KEY_LEFT;
+        bKey[2] = key == KEY_DOWN;
+        bKey[3] = key == 'z' || key == 'Z';
 
 
         // GAME LOGIC =========================================================
+        if (bKey[0] && DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX + 1, nCurrentY))
+        {
+            nCurrentX = nCurrentX + 1;
+        }
 
+        if (bKey[1] && DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX - 1, nCurrentY))
+        {
+            nCurrentX = nCurrentX - 1;
+        }
+
+        if (bKey[2] && DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1))
+        {
+            nCurrentY = nCurrentY + 1;
+        }
+
+        if (bKey[3])
+        {
+            if (!bRotateHold && DoesPieceFit(nCurrentPiece, nCurrentRotation + 1, nCurrentX, nCurrentY))
+            {
+                nCurrentRotation = nCurrentRotation + 1;
+                bRotateHold = true;
+            }
+        }
+        else
+        {
+            bRotateHold = false;
+        }
 
         // RENDER OUTPUT ======================================================
+
+        // Clear screen buffer
+        for (int i = 0; i < nScreenWidth * nScreenHeight; i++)
+        {
+            screen[i] = ' ';
+        }
 
         // Draw Playing Field into the Screen Buffer
         int offset = 2;
@@ -143,41 +188,23 @@ int main() {
         for (int px = 0; px < 4; px++)
             for (int py = 0; py < 4; py++)
                 if (tetromino[nCurrentPiece][Rotate(px, py, nCurrentRotation)] == L'X')
-                    screen[(nCurrentY + py + 2)*nScreenWidth + (nCurrentX + px + 2)] = nCurrentPiece + 65;
+                    screen[(nCurrentY + py + offset)*nScreenWidth + (nCurrentX + px + offset)] = 'A' + nCurrentPiece;
 
 
         // Display Frame
-
-        // \x1b[2J is an ANSI escape sequence used by programmers to clear the terminal screen
-        // \x1b: This represents the Escape character (ESC, ASCII value 27 in decimal or 1B in hexadecimal).
-        // It signals to the terminal emulator that the characters following it are instructions to manipulate
-        // the display rather than plain text to be printed.
-        // [: This is the Control Sequence Introducer (CSI). It marks the beginning of most multi-character
-        // ANSI commands.
-        // 2: A parameter specifying the scope of the action. In the context of the clear screen command,
-        // 2 means "erase the entire visible screen". (Using a 0 clears from the cursor to the end of the screen,
-        // and a 1 clears from the beginning of the screen to the cursor).
-        // The \x1b[H part tells the terminal to move the cursor back to the "home" position (the top-left corner
-        // of the screen). Without it, your terminal screen would be wiped clean, but your cursor would remain
-        // floating down in the middle of the blank space!
-        if (bFirstFrame)
-        {
-            std::cout << "\x1b[2J"; // Clear old terminal contents once.
-            bFirstFrame = false;
-        }
-        std::cout << "\x1b[H";
+        erase();
         for (int y = 0; y < nScreenHeight; y++)
         {
-            std::cout.write(screen + y * nScreenWidth, nScreenWidth);
-            std::cout << '\n';
+            mvaddnstr(y, 0, screen + y * nScreenWidth, nScreenWidth);
         }
-        std::cout.flush();
+        refresh();
 
-        // Replace Windows timing APIs with the standard C++ sleep mechanism.
-        // This field-only tutorial stage has no input yet; Ctrl-C stops the loop.
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        //std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     }
+
+    endwin();
 
     delete[] screen;
     delete[] pField;

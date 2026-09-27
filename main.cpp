@@ -128,6 +128,8 @@ int main() {
     int nSpeedCounter = 0;
     bool bForceDown = false;
 
+    vector<int> vLines;
+
 
 
 
@@ -206,6 +208,7 @@ int main() {
                             {
                                 pField[(nCurrentY + py) * nFieldWidth + px] = 8;
                             }
+                            vLines.push_back(nCurrentY + py);
                         }
                     }
                 }
@@ -245,6 +248,37 @@ int main() {
                 if (tetromino[nCurrentPiece][Rotate(px, py, nCurrentRotation)] == L'X')
                     screen[(nCurrentY + py + offset)*nScreenWidth + (nCurrentX + px + offset)] = 'A' + nCurrentPiece;
 
+        if (!vLines.empty())
+        {
+            // Show completed lines (=) before removing them
+            erase();
+
+            for (int y = 0; y < nScreenHeight; y++)
+            {
+                mvaddnstr(y, 0, screen + y * nScreenWidth, nScreenWidth);
+            }
+
+            //refresh();
+
+            std::this_thread::sleep_for(400ms);
+
+            // Remove completed lines
+            for (auto &v : vLines)
+            {
+                for (int px = 1; px < nFieldWidth - 1; px++)
+                {
+                    for (int py = v; py > 0; py--)
+                    {
+                        pField[py * nFieldWidth + px] =
+                            pField[(py - 1) * nFieldWidth + px];
+                    }
+
+                    pField[px] = 0;
+                }
+            }
+
+            vLines.clear();
+        }
 
         // Display Frame
         erase();

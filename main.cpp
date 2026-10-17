@@ -2,6 +2,7 @@
 #include <chrono>
 #include <thread>
 #include <ncurses.h>
+#include <vector>
 
 using namespace std;
 
@@ -127,11 +128,10 @@ int main() {
     int nSpeed = 20;
     int nSpeedCounter = 0;
     bool bForceDown = false;
+    int nPieceCounter = 0;
+    int nScore = 0;
 
     vector<int> vLines;
-
-
-
 
     while (!bGameover)
     {
@@ -185,10 +185,24 @@ int main() {
             {
                 // Lock the current piece in the field
                 for (int px = 0; px < 4; px++)
+                {
                     for (int py = 0; py < 4; py++)
+                    {
                         if (tetromino[nCurrentPiece][Rotate(px, py, nCurrentRotation)] == L'X')
+                        {
                             pField[(nCurrentY + py)*nFieldWidth + (nCurrentX + px)] = nCurrentPiece + 1;
+                        }
+                    }
+                }
 
+                nPieceCounter++;
+                if (nPieceCounter % 10 == 0)
+                {
+                    if (nSpeed >= 10)
+                    {
+                        nSpeed--;
+                    }
+                }
 
                 // Check have we got any lines
                 for (int py = 0; py < 4; py++)
@@ -211,6 +225,12 @@ int main() {
                             vLines.push_back(nCurrentY + py);
                         }
                     }
+                }
+
+                nScore += 25;
+                if (!vLines.empty())
+                {
+                    nScore += (1 << vLines.size()) * 100;
                 }
 
                 // Choose next piece
@@ -248,6 +268,9 @@ int main() {
                 if (tetromino[nCurrentPiece][Rotate(px, py, nCurrentRotation)] == L'X')
                     screen[(nCurrentY + py + offset)*nScreenWidth + (nCurrentX + px + offset)] = 'A' + nCurrentPiece;
 
+        // Draw Score
+        snprintf(&screen[2 * nScreenWidth + nFieldWidth + 6], 16, "SCORE: %8d", nScore);
+
         if (!vLines.empty())
         {
             // Show completed lines (=) before removing them
@@ -258,7 +281,7 @@ int main() {
                 mvaddnstr(y, 0, screen + y * nScreenWidth, nScreenWidth);
             }
 
-            //refresh();
+            refresh();
 
             std::this_thread::sleep_for(400ms);
 
@@ -288,12 +311,16 @@ int main() {
         }
         refresh();
 
-
         //std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     }
 
     endwin();
+
+    // Oh Dear
+    std::cout << "Game Over!! Score: "
+          << nScore
+          << '\n';
 
     delete[] screen;
     delete[] pField;
